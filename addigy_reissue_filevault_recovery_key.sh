@@ -29,20 +29,20 @@ PROMPT_TITLE="Encryption Key Escrow"
 
 # The body of the message that will be displayed before prompting the user for
 # their password. All message strings below can be multiple lines.
-PROMPT_MESSAGE="Your Mac's FileVault encryption key needs to be escrowed by PretendCo IT.
+PROMPT_MESSAGE="Your Mac's FileVault encryption key needs to be escrowed by Interlaced.
 
-Click the Next button below, then enter your Mac's password when prompted."
+Click the OK button below, then enter your Mac's password when prompted."
 
 # The body of the message that will be displayed after 5 incorrect passwords.
 FORGOT_PW_MESSAGE="You made five incorrect password attempts.
 
-Please contact the Help Desk at 555-1212 for help with your Mac password."
+Please contact the Interlaced Support Team at 1-800-202-7400 for help with your Mac password."
 
 # The body of the message that will be displayed after successful completion.
 SUCCESS_MESSAGE="Thank you! Your FileVault key has been escrowed."
 
 # The body of the message that will be displayed if a failure occurs.
-FAIL_MESSAGE="Sorry, an error occurred while escrowing your FileVault key. Please contact the Help Desk at 555-1212 for help."
+FAIL_MESSAGE="Sorry, an error occurred while escrowing your FileVault key. Please contact the Interlaced Support Team at 1-800-202-7400 for help."
 
 # Optional but recommended: The profile identifiers of the FileVault Key
 # Redirection profiles (e.g. ABCDEF12-3456-7890-ABCD-EF1234567890).
@@ -77,10 +77,10 @@ if [[ $REMOTE_USERS -gt 0 ]]; then
     BAILOUT=true
 fi
 
-# Bail out if jamfHelper doesn't exist.
-jamfHelper="/Library/Application Support/JAMF/bin/jamfHelper.app/Contents/MacOS/jamfHelper"
-if [[ ! -x "$jamfHelper" ]]; then
-    REASON="jamfHelper not found."
+# Bail out if macManage doesn't exist.
+macManage="/Library/Addigy/macmanage/MacManage.app/Contents/MacOS/MacManage"
+if [[ ! -x "$macManage" ]]; then
+    REASON="MacManage not found."
     BAILOUT=true
 fi
 
@@ -169,13 +169,13 @@ fi
 # If any error occurred in the validation section, bail out.
 if [[ "$BAILOUT" == "true" ]]; then
     echo "[ERROR]: $REASON"
-    launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$FAIL_MESSAGE: $REASON" -button1 'OK' -defaultButton 1 -startlaunchd &>/dev/null &
+    launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$FAIL_MESSAGE: $REASON" &>/dev/null &
     exit 1
 fi
 
 # Display a branded prompt explaining the password prompt.
 echo "Alerting user $CURRENT_USER about incoming password prompt..."
-/bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$PROMPT_MESSAGE" -button1 "Next" -defaultButton 1 -startlaunchd &>/dev/null
+/bin/launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$PROMPT_MESSAGE" &>/dev/null
 
 # Get the logged in user's password via a prompt.
 echo "Prompting $CURRENT_USER for their Mac password..."
@@ -189,7 +189,7 @@ until /usr/bin/dscl /Search -authonly "$CURRENT_USER" "$USER_PASS" &>/dev/null; 
     USER_PASS="$(/bin/launchctl "$L_METHOD" "$L_ID" /usr/bin/osascript -e 'display dialog "Sorry, that password was incorrect. Please try again:" default answer "" with title "'"${PROMPT_TITLE//\"/\\\"}"'" giving up after 86400 with text buttons {"OK"} default button 1 with hidden answer with icon file "'"${LOGO_POSIX//\"/\\\"}"'"' -e 'return text returned of result')"
     if (( TRY >= 5 )); then
         echo "[ERROR] Password prompt unsuccessful after 5 attempts. Displaying \"forgot password\" message..."
-        /bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$FORGOT_PW_MESSAGE" -button1 'OK' -defaultButton 1 -startlaunchd &>/dev/null &
+        /bin/launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$FORGOT_PW_MESSAGE" &>/dev/null &
         exit 1
     fi
 done
@@ -251,7 +251,7 @@ if [[ "$OS_MINOR" -ge 13 ]]; then
         NEW_PRK_MOD=$(/usr/bin/stat -f "%Sm" -t "%s" "/var/db/FileVaultPRK.dat")
         if [[ $NEW_PRK_MOD -gt $PRK_MOD ]]; then
             ESCROW_STATUS=0
-            echo "Recovery key updated locally and available for collection via MDM. (This usually requires two 'jamf recon' runs to show as valid.)"
+            echo "Recovery key updated locally and available for collection via MDM."
         else
             echo "[WARNING] The recovery key does not appear to have been updated locally."
         fi
@@ -268,16 +268,16 @@ if [[ $FDESETUP_RESULT -ne 0 ]]; then
     echo "See this page for a list of fdesetup exit codes and their meaning:"
     echo "https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man8/fdesetup.8.html"
     echo "Displaying \"failure\" message..."
-    /bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$FAIL_MESSAGE: fdesetup exited with code $FDESETUP_RESULT. Output: $FDESETUP_OUTPUT" -button1 'OK' -defaultButton 1 -startlaunchd &>/dev/null &
+    /bin/launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$FAIL_MESSAGE: fdesetup exited with code $FDESETUP_RESULT. Output: $FDESETUP_OUTPUT" &>/dev/null &
 elif [[ $ESCROW_STATUS -ne 0 ]]; then
     [[ -n "$FDESETUP_OUTPUT" ]] && echo "$FDESETUP_OUTPUT"
     echo "[WARNING] FileVault key was generated, but escrow cannot be confirmed. Please verify that the redirection profile is installed and the Mac is connected to the internet."
     echo "Displaying \"failure\" message..."
-    /bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$FAIL_MESSAGE: New key generated, but escrow did not occur." -button1 'OK' -defaultButton 1 -startlaunchd &>/dev/null &
+    /bin/launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$FAIL_MESSAGE: New key generated, but escrow did not occur." &>/dev/null &
 else
     [[ -n "$FDESETUP_OUTPUT" ]] && echo "$FDESETUP_OUTPUT"
     echo "Displaying \"success\" message..."
-    /bin/launchctl "$L_METHOD" "$L_ID" "$jamfHelper" -windowType "utility" -icon "$LOGO" -title "$PROMPT_TITLE" -description "$SUCCESS_MESSAGE" -button1 'OK' -defaultButton 1 -startlaunchd &>/dev/null &
+    /bin/launchctl "$L_METHOD" "$L_ID" "$macManage" action=notify title="$PROMPT_TITLE" description="$SUCCESS_MESSAGE" &>/dev/null &
 fi
 
 exit $FDESETUP_RESULT
