@@ -10,8 +10,9 @@
 #                   FileVault keys to JSS" configuration profile must already
 #                   be deployed in order for this script to work correctly.
 #          Author:  Elliot Jordan <elliot@elliotjordan.com>
+#    Addigy Edits:  Zack McQueen <zack.mcqueen@gmail.com>
 #         Created:  2015-01-05
-#   Last Modified:  2020-07-06
+#   Last Modified:  2020-10-08
 #         Version:  1.9.5
 #
 ###
